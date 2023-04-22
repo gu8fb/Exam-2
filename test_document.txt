@@ -1,0 +1,12 @@
+while (x < 5) {
+    x = x + 1;  
+    }
+
+DataType x, x 
+
+if (y > 6) {
+  x = 21;
+  y = 44;
+} else {
+    x = 58;
+}

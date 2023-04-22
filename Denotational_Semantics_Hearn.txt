@@ -1,0 +1,184 @@
+<STMT> --> <IF_STMT> | <BLOCK> | <ASSIGN> | <DECLARE> |<WHILE_LOOP>
+M_stmt(if ( BE ) BLOCK, s) ==>	if M_if(if ( BE ) BLOCK, s) == Error
+						return error
+					else return s = M_if(if ( BE ) BLOCK, s)
+					
+M_stmt(BLOCK,s) ==>	if M_block(BLOCK,s) == Error
+						return Error
+					else return	BLOCK
+
+M_stmt(ID = E, s) ==>	if M_assign(ID = E, s) == Error
+							return Error
+						else return s = M_assign( ID = E, s)
+
+M_stmt(DECLARE,s) ==>	if M_declare(DECLARE,s) == Error
+							return Error
+						else return DECLARE
+
+M_stmt(while ( BE ) BLOCK, s) ==>	if M_while(while ( BE ) BLOCK, s) == Error
+						return Error
+					else return s = M_while(while ( BE ) BLOCK, s)
+					
+
+<STMT_LIST> --> { <STMT> `;` }
+M_stmtlist( STMT ;, s) ==> 	if M_stmt(STMT,s) == Error
+								return error
+							else return STMT
+
+<WHILE_LOOP> --> `while` `(` <BOOL_EXPR> `)` <BLOCK> 
+M_while(while ( BE ) BLOCK, s) ==>	if M_bexpr(BE,s) == Error
+									return error
+								if M_bexpr(BE,s) == False
+									return s
+								else if M_bexpr(BE,s) == True
+									if M_block(BLOCK,s) == Error
+										return error
+									else return s = M_while(while ( BE ) BLOCK, M_block(BLOCK,s))
+
+<IF_STMT> --> `if` `(` <BOOL_EXPR> `)` <BLOCK>  [ `else`  <BLOCK> ] 
+M_if(if ( BE ) BLOCK, s) ==>	if M_bexpr(BE,s) == Error
+									return error
+								else if M_bexpr(BE,s) == False
+									if M_block(BLOCK,s) == Error
+										return error
+									else return s = M_block(BLOCK,s)
+								else if M_bexpr(BE,s) == True 
+									if M_block(BLOCK,s) == Error
+										return error
+									else return s = M_block(BLOCK,s)
+<BLOCK> --> `{` <STMT_LIST> `}`
+M_block ( { STMT_LIST }, s) ==>	if M_stmtlist(STMT ;, s) == Error
+									return false
+									else return STMT_LIST
+
+<DECLARE> --> `DataType` ID {`,` ID }
+M_declare( DataType ID [ , ID ], s) ==>	if VARMAP[ID] = undefined
+											return error
+										else return DataType ID
+
+<ASSIGN> --> ID `=` <EXPR>
+M_assign( ID = E, s) ==>	if M_expr(E,s) == Error
+								return error
+							else return VARMAP[ID] = M_expr(E,s)
+<EXPR> --> <TERM> {(`+`|`-`) <TERM>}
+M_expr( E + T, s) ==>	if M_expr(E,s) == Error
+							return Error
+						if M_term(T,s) == Error
+							return Error
+						else return E + T
+						
+M_expr( E - T, s) ==>	if M_expr(E,s) == Error
+							return Error
+						if M_term(T,s) == Error
+							return Error
+						else return E - T
+
+M_expr( T,s ) ==>	if M_term(T,s) == Error
+						return Error
+						else return T
+
+<TERM> --> <FACT> {(`*`|`/`|`%`) <FACT>}
+M_term( T * F, s) ==>	if M_term(T,s) == Error
+							return Error
+						if M_factor(F,s) == Error
+							return Error
+						else return T * F 
+M_term( T / F, s) ==>	if M_term(T,s) == Error
+							return Error
+						if M_factor(F,s) == Error
+							return Error
+						if M_factor(F,s) == 0
+							return Error
+						else return T / F 
+M_term( T % F, s) ==>	if M_term(T,s) == Error
+							return Error
+						if M_factor(F,s) == Error
+							return Error
+						if M_factor(F,s) == 0
+							return Error
+						else return T % F 
+
+M_term( F,s ) ==>	if M_factor(F,s) == Error
+						return Error
+					else return F
+	
+
+<FACT> --> ID | INT_LIT | FLOAT_LIT | `(` <EXPR> `)`
+
+M_factor((E), s) ==>	if M_expr(E,s) == Error	
+							return Error
+						else return M_expr(E,s)
+						
+M_factor(ID, s) ==>		if VARMAP[ID} == undefined
+							return Error
+						else VARMAP[ID}
+
+M_factor(INT_LIT, s) ==> return M_int(INT_LIT,s)
+
+M_factor(FLOAT_LIT, s) ==> return M_float(FLOAT_LIT,s)
+
+<BOOL_EXPR> --> <BTERM> {(`>`|`<`|`>=`|`<=`) <BTERM>}
+M_bexpr( BE > BT, s) ==>	if M_bexpr(BE,s) == Error
+								return Error
+							if M_btermxpr(BT,s) == Error
+								return Error
+							else return BE > BT
+						
+M_bexpr( BE < BT, s) ==>	if M_bexpr(BE,s) == Error
+							return Error
+						if M_bterm(BT,s) == Error
+							return Error
+						else return BE < BT
+						
+M_bexpr( BE >= BT, s) ==>	if M_bexpr(BE,s) == Error
+							return Error
+						if M_bterm(BT,s) == Error
+							return Error
+						else return BE >= BT
+
+M_bexpr( BE <= BT, s) ==>	if M_bexpr(BE,s) == Error
+							return Error
+						if M_bterm(BT,s) == Error
+							return Error
+						else return BE <= BT
+
+M_bexpr( BT,s ) ==>	if M_bterm(BT,s) == Error
+						return Error
+						else return BT
+
+<BTERM> --> <BAND> {(`==`|`!=`) <BAND>}
+M_bterm( BT == BA, s) ==>	if M_bterm(BT,s) == Error
+							return Error
+						if M_band(BA,s) == Error
+							return Error
+						else return BT == BA
+
+M_bterm( BT != BA, s) ==>	if M_bterm(BT,s) == Error
+							return Error
+						if M_band(BA,s) == Error
+							return Error
+						else return BT != BA
+						
+M_bterm( BA, s) ==>	if M_band(BA,s) == Error
+							return Error
+						else return BA
+<BAND> --> <BOR> {`&&` <BOR>}
+M_band( BA && BO, s) ==>	if M_band(BA,s) == Error
+								return Error
+							if M_bor(BO,s) == Error
+								return Error
+							else return BA && BO
+
+M_band (BO, s) ==>	if M_bor(BO,s)==Error
+						return Error
+					else return BO
+<BOR> --> <EXPR> {`||` <EXPR>}
+M_bor(BO || E, s) ==>	if M_bor(BO,s) == Error
+							return Error
+						if M_expr(E,s) == Error
+							return Error
+						else return BO || E 
+
+M_bor(E, s) ==>	if M_bexpr(E,s) ==> Error
+					return Error
+				else return E
